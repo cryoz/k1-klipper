@@ -27,7 +27,7 @@ choice
     config MACH_RPXXXX
         bool "Raspberry Pi RP2040/RP235x"
     config MACH_GD32
-	bool "Giga Device GD32"
+    bool "Giga Device GD32"
     config MACH_PRU
         bool "Beaglebone PRU"
     config MACH_AR100
@@ -52,9 +52,9 @@ source "src/linux/Kconfig"
 source "src/simulator/Kconfig"
 
 config MCU_MENU
-	string 
-	default "S" if MACH_STM32
-	default "G" if MACH_GD32
+    string
+    default "S" if MACH_STM32
+    default "G" if MACH_GD32
 
 # Generic configuration options for serial ports
 config SERIAL
@@ -315,11 +315,11 @@ config INITIAL_PINS
         character to set that pin to output low.
 
 config BUILD_MACHINE_UID
-	string "Custom your machine firmware name as unique ID"
-	depends on LOW_LEVEL_OPTIONS
-	help
-		It is for klipper host making a distinction between each 
-		printer when one host controls more than one machine. 
+    string "Custom your machine firmware name as unique ID"
+    depends on LOW_LEVEL_OPTIONS
+    help
+        It is for klipper host making a distinction between each
+        printer when one host controls more than one machine.
 
 # The HAVE_x options allow boards to disable support for some commands
 # if the hardware does not support the feature.

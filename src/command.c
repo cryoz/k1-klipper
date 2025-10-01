@@ -20,7 +20,8 @@ DECL_CONSTANT_STR("build_machine_uid", BUILD_MACHINE_UID);
 #if CONFIG_BOARD_INFO_CONFIGURE
 #define FIRMWARE_VERSION BOARD_FW_VERSION
 //DECL_CONSTANT_STR("firmware_version", FIRMWARE_VERSION);
-static const char software_version[32] __attribute__ ((section("SV_SECTION"))) __attribute__((used)) = FIRMWARE_VERSION;
+static const char software_version[32] __attribute__ ((section("SV_SECTION")))
+    __attribute__((used)) = FIRMWARE_VERSION;
 #endif
 
 

@@ -4,8 +4,8 @@
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
-#include "internal.h" // NVIC_SystemReset
 #include "board/irq.h" // irq_disable
+#include "internal.h"  // NVIC_SystemReset
 
 // Many stm32 chips have a USB capable "DFU bootloader" in their ROM.
 // In order to invoke that bootloader it is necessary to reset the
@@ -24,44 +24,39 @@
 #define USB_BOOT_FLAG 0x4254 // "BT"
 
 // Flag that bootloader is desired and reboot
-void
-dfu_reboot(void)
-{
-    if (!CONFIG_GD32_DFU_ROM_ADDRESS)
-        return;
-    irq_disable();
+void dfu_reboot(void) {
+  if (!CONFIG_GD32_DFU_ROM_ADDRESS)
+    return;
+  irq_disable();
 #if CONFIG_MACH_GD32F30X
-    BKP_DATA1 = USB_BOOT_FLAG;
+  BKP_DATA1 = USB_BOOT_FLAG;
 #elif CONFIG_MACH_GD32E23X
-    RTC_BKP1 = USB_BOOT_FLAG;
+  RTC_BKP1 = USB_BOOT_FLAG;
 #else
-    uint64_t *bflag = (void*)USB_BOOT_FLAG_ADDR;
-    *bflag = USB_BOOT_FLAG;
+  uint64_t *bflag = (void *)USB_BOOT_FLAG_ADDR;
+  *bflag = USB_BOOT_FLAG;
 #endif
-    NVIC_SystemReset();
+  NVIC_SystemReset();
 }
 
 // Check if rebooting into system DFU Bootloader
-void
-dfu_reboot_check(void)
-{
-    if (!CONFIG_GD32_DFU_ROM_ADDRESS)
-        return;
+void dfu_reboot_check(void) {
+  if (!CONFIG_GD32_DFU_ROM_ADDRESS)
+    return;
 #if CONFIG_MACH_GD32E23X
-    if (RTC_BKP1 != USB_BOOT_FLAG)
-        return;
-    RTC_BKP1 = 0;
+  if (RTC_BKP1 != USB_BOOT_FLAG)
+    return;
+  RTC_BKP1 = 0;
 #elif CONFIG_MACH_GD32F30X
-    if (BKP_DATA1 != USB_BOOT_FLAG)
-        return;
-    BKP_DATA1 = 0;
+  if (BKP_DATA1 != USB_BOOT_FLAG)
+    return;
+  BKP_DATA1 = 0;
 #else
-    if(*(uint64_t*)USB_BOOT_FLAG_ADDR != USB_BOOT_FLAG)
-	return;
-    *(uint64_t*)USB_BOOT_FLAG_ADDR = 0;
+  if (*(uint64_t *)USB_BOOT_FLAG_ADDR != USB_BOOT_FLAG)
+    return;
+  *(uint64_t *)USB_BOOT_FLAG_ADDR = 0;
 #endif
 
-    uint32_t *sysbase = (uint32_t*)CONFIG_GD32_DFU_ROM_ADDRESS;
-    asm volatile("mov sp, %0\n bx %1"
-                 : : "r"(sysbase[0]), "r"(sysbase[1]));
+  uint32_t *sysbase = (uint32_t *)CONFIG_GD32_DFU_ROM_ADDRESS;
+  asm volatile("mov sp, %0\n bx %1" : : "r"(sysbase[0]), "r"(sysbase[1]));
 }

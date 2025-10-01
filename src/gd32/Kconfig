@@ -2,7 +2,7 @@
 
 if MACH_GD32
 
-config GD32_SELECT 
+config GD32_SELECT
     bool
     default y
     select HAVE_GPIO
@@ -12,7 +12,7 @@ config GD32_SELECT
     select HAVE_GPIO_BITBANGING
     select HAVE_STRICT_TIMING
     select HAVE_CHIPID
-#	select HAVE_GPIO_HARD_PWM
+#    select HAVE_GPIO_HARD_PWM
     select HAVE_STEPPER_OPTIMIZED_BOTH_EDGE
     select HAVE_BOOTLOADER_REQUEST
 #    select HAVE_LIMITED_CODE_SIZE if FLASH_SIZE < 0x10000
@@ -25,111 +25,111 @@ choice
     prompt "Processor model"
     config MACH_GD32F303XB
         bool "gd32f303xb"
-		select MACH_GD32F30X_HD
-		select MACH_GD32F30X
-		select MACH_GD32F303XX
+        select MACH_GD32F30X_HD
+        select MACH_GD32F30X
+        select MACH_GD32F303XX
     config MACH_GD32F303XC
         bool "gd32f303xc"
-		select MACH_GD32F30X_HD
-		select MACH_GD32F30X
-		select MACH_GD32F303XX
+        select MACH_GD32F30X_HD
+        select MACH_GD32F30X
+        select MACH_GD32F303XX
     config MACH_GD32F303XE
         bool "gd32f303xe"
-		select MACH_GD32F30X_HD
-		select MACH_GD32F30X
-		select MACH_GD32F303XX
+        select MACH_GD32F30X_HD
+        select MACH_GD32F30X
+        select MACH_GD32F303XX
     config MACH_GD32F303XG
         bool "gd32f303xg"
-		select MACH_GD32F30X_XD
-		select MACH_GD32F30X
-		select MACH_GD32F303XX
+        select MACH_GD32F30X_XD
+        select MACH_GD32F30X
+        select MACH_GD32F303XX
     config MACH_GD32F303XI
         bool "gd32f303xi"
-		select MACH_GD32F30X_XD
-		select MACH_GD32F30X
-		select MACH_GD32F303XX
+        select MACH_GD32F30X_XD
+        select MACH_GD32F30X
+        select MACH_GD32F303XX
     config MACH_GD32F303XK
         bool "gd32f303xk"
-		select MACH_GD32F30X_XD
-		select MACH_GD32F30X
-		select MACH_GD32F303XX
+        select MACH_GD32F30X_XD
+        select MACH_GD32F30X
+        select MACH_GD32F303XX
     config MACH_GD32F305XB
         bool "gd32f305xb"
-		select MACH_GD32F30X_CL
-		select MACH_GD32F30X
-		select MACH_GD32F305XX
+        select MACH_GD32F30X_CL
+        select MACH_GD32F30X
+        select MACH_GD32F305XX
     config MACH_GD32F305XC
         bool "gd32f305xc"
-		select MACH_GD32F30X_CL
-		select MACH_GD32F30X
-		select MACH_GD32F305XX
+        select MACH_GD32F30X_CL
+        select MACH_GD32F30X
+        select MACH_GD32F305XX
     config MACH_GD32F305XE
         bool "gd32f305xe"
-		select MACH_GD32F30X_CL
-		select MACH_GD32F30X
-		select MACH_GD32F305XX
+        select MACH_GD32F30X_CL
+        select MACH_GD32F30X
+        select MACH_GD32F305XX
     config MACH_GD32F305XG
         bool "gd32f305xg"
-		select MACH_GD32F30X_CL
-		select MACH_GD32F30X
-		select MACH_GD32F305XX
+        select MACH_GD32F30X_CL
+        select MACH_GD32F30X
+        select MACH_GD32F305XX
     config MACH_GD32F307XC
         bool "gd32f307xc"
-		select MACH_GD32F30X_CL
-		select MACH_GD32F30X
-		select MACH_GD32F307XX
+        select MACH_GD32F30X_CL
+        select MACH_GD32F30X
+        select MACH_GD32F307XX
     config MACH_GD32F307XE
         bool "gd32f307xe"
-		select MACH_GD32F30X_CL
-		select MACH_GD32F30X
-		select MACH_GD32F307XX
+        select MACH_GD32F30X_CL
+        select MACH_GD32F30X
+        select MACH_GD32F307XX
     config MACH_GD32F307XG
         bool "gd32f307xg"
-		select MACH_GD32F30X_CL
-		select MACH_GD32F30X
-		select MACH_GD32F307XX
-	config MACH_GD32E230X6
+        select MACH_GD32F30X_CL
+        select MACH_GD32F30X
+        select MACH_GD32F307XX
+    config MACH_GD32E230X6
         bool "gd32e230x6"
-		select MACH_GD32E23X
-	config MACH_GD32E230X8
+        select MACH_GD32E23X
+    config MACH_GD32E230X8
         bool "gd32e230x8"
-		select MACH_GD32E23X
+        select MACH_GD32E23X
 endchoice
 
 config MCU_TYPE
     string
-	default "30" if MACH_GD32F303XB
-	default "31" if MACH_GD32F303XC
-	default "32" if MACH_GD32F303XE
-	default "33" if MACH_GD32F303XG
-	default "34" if MACH_GD32F303XI
-	default "35" if MACH_GD32F303XK
-	default "36" if MACH_GD32F305XB
-	default "37" if MACH_GD32F305XC
-	default "38" if MACH_GD32F305XE
-	default "39" if MACH_GD32F305XG
-	default "3a" if MACH_GD32F307XC
-	default "3b" if MACH_GD32F307XE
-	default "3c" if MACH_GD32F307XG
-	default "20" if MACH_GD32E230X6
-	default "21" if MACH_GD32E230X8
+    default "30" if MACH_GD32F303XB
+    default "31" if MACH_GD32F303XC
+    default "32" if MACH_GD32F303XE
+    default "33" if MACH_GD32F303XG
+    default "34" if MACH_GD32F303XI
+    default "35" if MACH_GD32F303XK
+    default "36" if MACH_GD32F305XB
+    default "37" if MACH_GD32F305XC
+    default "38" if MACH_GD32F305XE
+    default "39" if MACH_GD32F305XG
+    default "3a" if MACH_GD32F307XC
+    default "3b" if MACH_GD32F307XE
+    default "3c" if MACH_GD32F307XG
+    default "20" if MACH_GD32E230X6
+    default "21" if MACH_GD32E230X8
 
 config MACH_GD32F30X_HD
-	bool
+    bool
 config MACH_GD32F30X_XD
-	bool
+    bool
 config MACH_GD32F30X_CL
-	bool
+    bool
 config MACH_GD32F303XX
-	bool
+    bool
 config MACH_GD32F305XX
-	bool
+    bool
 config MACH_GD32F307XX
-	bool
+    bool
 config MACH_GD32F30X
-	bool
+    bool
 config MACH_GD32E23X
-	bool
+    bool
 
 config MCU
     string
@@ -153,7 +153,7 @@ config CLOCK_FREQ
     int
     default 120000000 if MACH_GD32F30X
     default 72000000 if MACH_GD32E23X
-	
+
 #config FLASH_START
 #    hex
 #    default 0x08000000
@@ -173,7 +173,7 @@ config FLASH_SIZE
     default 0x00100000 if (MACH_GD32F303XG || MACH_GD32F305XG || MACH_GD32F307XG)
     default 0x00200000 if MACH_GD32F303XI
     default 0x00300000 if MACH_GD32F303XK
-	
+
 
 config FLASH_BOOT_ADDRESS
     hex

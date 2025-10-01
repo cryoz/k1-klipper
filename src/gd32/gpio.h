@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 struct gpio_out {
-	uint32_t pin;
+    uint32_t pin;
 };
 struct gpio_out gpio_out_setup(uint8_t pin, uint8_t val);
 void gpio_out_reset(struct gpio_out g, uint8_t val);
