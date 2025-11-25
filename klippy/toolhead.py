@@ -237,6 +237,8 @@ class ToolHead:
         self.Coord = gcode.Coord
         extruder = kinematics.extruder.DummyExtruder(self.printer)
         self.extra_axes = [extruder]
+        self.extra_axes_status = {}
+        self._build_extra_axes_status()
         kin_name = config.get('kinematics')
         try:
             mod = importlib.import_module('kinematics.' + kin_name)
@@ -276,21 +278,22 @@ class ToolHead:
             self._calc_print_time()
         # Queue moves into trapezoid motion queue (trapq)
         next_move_time = self.print_time
-        for move in moves:
-            if move.is_kinematic_move:
-                self.trapq_append(
-                    self.trapq, next_move_time,
-                    move.accel_t, move.cruise_t, move.decel_t,
-                    move.start_pos[0], move.start_pos[1], move.start_pos[2],
-                    move.axes_r[0], move.axes_r[1], move.axes_r[2],
-                    move.start_v, move.cruise_v, move.accel)
-            for e_index, ea in enumerate(self.extra_axes):
-                if move.axes_d[e_index + 3]:
-                    ea.process_move(next_move_time, move, e_index + 3)
-            next_move_time = (next_move_time + move.accel_t
-                              + move.cruise_t + move.decel_t)
-            for cb in move.timing_callbacks:
-                cb(next_move_time)
+        with self.reactor.assert_no_pause():
+            for move in moves:
+                if move.is_kinematic_move:
+                    self.trapq_append(
+                        self.trapq, next_move_time,
+                        move.accel_t, move.cruise_t, move.decel_t,
+                        move.start_pos[0], move.start_pos[1], move.start_pos[2],
+                        move.axes_r[0], move.axes_r[1], move.axes_r[2],
+                        move.start_v, move.cruise_v, move.accel)
+                for e_index, ea in enumerate(self.extra_axes):
+                    if move.axes_d[e_index + 3]:
+                        ea.process_move(next_move_time, move, e_index + 3)
+                next_move_time = (next_move_time + move.accel_t
+                                  + move.cruise_t + move.decel_t)
+                for cb in move.timing_callbacks:
+                    cb(next_move_time)
         # Generate steps for moves
         self._advance_move_time(next_move_time)
         self.motion_queuing.note_mcu_movequeue_activity(next_move_time)
@@ -424,16 +427,22 @@ class ToolHead:
             if not self.can_pause:
                 break
             eventtime = self.reactor.pause(eventtime + 0.100)
+    def _build_extra_axes_status(self):
+        enames = [ea.get_name() for ea in self.extra_axes]
+        self.extra_axes_status = {n: e_index + 3
+                                  for e_index, n in enumerate(enames) if n}
     def set_extruder(self, extruder, extrude_pos):
         # XXX - should use add_extra_axis
         self.extra_axes[0] = extruder
         self.commanded_pos[3] = extrude_pos
+        self._build_extra_axes_status()
     def get_extruder(self):
         return self.extra_axes[0]
     def add_extra_axis(self, ea, axis_pos):
         self._flush_lookahead()
         self.extra_axes.append(ea)
         self.commanded_pos.append(axis_pos)
+        self._build_extra_axes_status()
         self.printer.send_event("toolhead:update_extra_axes")
     def remove_extra_axis(self, ea):
         self._flush_lookahead()
@@ -442,6 +451,7 @@ class ToolHead:
         ea_index = self.extra_axes.index(ea) + 3
         self.commanded_pos.pop(ea_index)
         self.extra_axes.pop(ea_index - 3)
+        self._build_extra_axes_status()
         self.printer.send_event("toolhead:update_extra_axes")
     def get_extra_axes(self):
         return [None, None, None] + self.extra_axes
@@ -499,11 +509,12 @@ class ToolHead:
                      'stalls': self.print_stall,
                      'estimated_print_time': estimated_print_time,
                      'extruder': extruder.get_name(),
-                     'position': self.Coord(*self.commanded_pos[:4]),
+                     'position': self.Coord(self.commanded_pos),
                      'max_velocity': self.max_velocity,
                      'max_accel': self.max_accel,
                      'minimum_cruise_ratio': self.min_cruise_ratio,
-                     'square_corner_velocity': self.square_corner_velocity})
+                     'square_corner_velocity': self.square_corner_velocity,
+                     'extra_axes': self.extra_axes_status})
         return res
     def _handle_shutdown(self):
         self.can_pause = False

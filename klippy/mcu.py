@@ -9,6 +9,14 @@ import serialhdl, msgproto, pins, chelper, clocksync
 class error(Exception):
     pass
 
+# Minimum time host needs to get scheduled events queued into mcu
+MIN_SCHEDULE_TIME = 0.100
+# The maximum number of clock cycles an MCU is expected
+# to schedule into the future, due to the protocol and firmware.
+MAX_SCHEDULE_TICKS = (1<<31) - 1
+# Maximum time all MCUs can internally schedule into the future.
+# Directly caused by the limitation of MAX_SCHEDULE_TICKS.
+MAX_NOMINAL_DURATION = 3.0
 
 ######################################################################
 # Command transmit helper classes
@@ -382,7 +390,7 @@ class MCU_digital_out:
             raise pins.error("Pin with max duration must have start"
                              " value equal to shutdown value")
         mdur_ticks = self._mcu.seconds_to_clock(self._max_duration)
-        if mdur_ticks >= 1<<31:
+        if mdur_ticks > MAX_SCHEDULE_TICKS:
             raise pins.error("Digital pin max duration too large")
         self._mcu.request_move_queue_slot()
         self._oid = self._mcu.create_oid()
@@ -439,7 +447,7 @@ class MCU_pwm:
         self._last_clock = self._mcu.print_time_to_clock(printtime + 0.200)
         cycle_ticks = self._mcu.seconds_to_clock(self._cycle_time)
         mdur_ticks = self._mcu.seconds_to_clock(self._max_duration)
-        if mdur_ticks >= 1<<31:
+        if mdur_ticks > MAX_SCHEDULE_TICKS:
             raise pins.error("PWM pin max duration too large")
         if self._hardware_pwm:
             self._pwm_max = self._mcu.get_constant_float("PWM_MAX")
@@ -461,7 +469,7 @@ class MCU_pwm:
         # Software PWM
         if self._shutdown_value not in [0., 1.]:
             raise pins.error("shutdown value must be 0.0 or 1.0 on soft pwm")
-        if cycle_ticks >= 1<<31:
+        if cycle_ticks > MAX_SCHEDULE_TICKS:
             raise pins.error("PWM pin cycle time too large")
         self._mcu.request_move_queue_slot()
         self._oid = self._mcu.create_oid()
@@ -551,11 +559,6 @@ class MCU_adc:
 ######################################################################
 # Main MCU class (and its helper classes)
 ######################################################################
-
-# Minimum time host needs to get scheduled events queued into mcu
-MIN_SCHEDULE_TIME = 0.100
-# Maximum time all MCUs can internally schedule into the future
-MAX_NOMINAL_DURATION = 3.0
 
 # Support for restarting a micro-controller
 class MCURestartHelper:
@@ -697,13 +700,14 @@ class MCUConnectHelper:
         # Shutdown tracking
         self._emergency_stop_cmd = None
         self._is_shutdown = self._is_timeout = False
-        self._shutdown_clock = 0
         self._shutdown_msg = ""
         # Register handlers
         printer.register_event_handler("klippy:mcu_identify",
                                        self._mcu_identify)
         self._restart_helper = MCURestartHelper(config, self)
         printer.register_event_handler("klippy:shutdown", self._shutdown)
+        printer.register_event_handler("klippy:analyze_shutdown",
+                                       self._analyze_shutdown)
     def get_mcu(self):
         return self._mcu
     def get_serial(self):
@@ -718,17 +722,15 @@ class MCUConnectHelper:
         if self._is_shutdown:
             return
         self._is_shutdown = True
-        clock = params.get("clock")
-        if clock is not None:
-            self._shutdown_clock = self._mcu.clock32_to_clock64(clock)
         self._shutdown_msg = msg = params['static_string_id']
+        shutdown_clock = params.get("clock")
+        if shutdown_clock is not None:
+            shutdown_clock = self._mcu.clock32_to_clock64(shutdown_clock)
         event_type = params['#name']
         self._printer.invoke_async_shutdown(
             "MCU shutdown", {"reason": msg, "mcu": self._name,
-                             "event_type": event_type})
-        logging.info("MCU '%s' %s: %s\n%s\n%s", self._name, event_type,
-                     self._shutdown_msg, self._clocksync.dump_debug(),
-                     self._serial.dump_debug())
+                             "event_type": event_type,
+                             "shutdown_clock": shutdown_clock})
     def _handle_starting(self, params):
         if not self._is_shutdown:
             self._printer.invoke_async_shutdown("MCU '%s' spontaneous restart"
@@ -786,6 +788,12 @@ class MCUConnectHelper:
         self._mcu.register_response(self._handle_shutdown, 'shutdown')
         self._mcu.register_response(self._handle_shutdown, 'is_shutdown')
         self._mcu.register_response(self._handle_starting, 'starting')
+    def _analyze_shutdown(self, msg, details):
+        if self._mcu.is_fileoutput():
+            return
+        logging.info("MCU '%s' shutdown: %s\n%s\n%s", self._name,
+                     self._shutdown_msg, self._clocksync.dump_debug(),
+                     self._serial.dump_debug())
     def _shutdown(self, force=False):
         if (self._emergency_stop_cmd is None
             or (self._is_shutdown and not force)):
@@ -805,8 +813,6 @@ class MCUConnectHelper:
             self._name,))
     def is_shutdown(self):
         return self._is_shutdown
-    def get_shutdown_clock(self):
-        return self._shutdown_clock
     def get_shutdown_msg(self):
         return self._shutdown_msg
 
@@ -993,6 +999,12 @@ class MCUConfigHelper:
             if cname.startswith("RESERVE_PINS_"):
                 for pin in value.split(','):
                     pin_resolver.reserve_pin(pin, cname[13:])
+        if MAX_NOMINAL_DURATION * self._mcu_freq > MAX_SCHEDULE_TICKS:
+            max_possible = MAX_SCHEDULE_TICKS * 1 / self._mcu_freq
+            raise error("Too high clock speed for MCU '%s'"
+                        " to be able to resolve a maximum nominal duration"
+                        " of %ds. Max possible duration: %ds"
+                        % (self._name, MAX_NOMINAL_DURATION, max_possible))
     # Config creation helpers
     def setup_pin(self, pin_type, pin_params):
         pcs = {'endstop': MCU_endstop,
@@ -1104,11 +1116,6 @@ class MCU:
         offset, freq = self._clocksync.calibrate_clock(print_time, eventtime)
         self._conn_helper.check_timeout(eventtime)
         return offset, freq
-    # Low-level connection wrappers
-    def is_shutdown(self):
-        return self._conn_helper.is_shutdown()
-    def get_shutdown_clock(self):
-        return self._conn_helper.get_shutdown_clock()
     # Statistics wrappers
     def get_status(self, eventtime=None):
         return self._stats_helper.get_status(eventtime)
